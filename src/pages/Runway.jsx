@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
-import { Heart, Plus } from 'lucide-react'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { ChevronLeft, ChevronRight, Heart, Plus } from 'lucide-react'
 import { LOOKS, formatPrice, lookLabel, railPieces } from '../data/collection'
 import { ModelImage, PieceImage, loadSheets } from '../components/Sprites'
 import { useRunwayEngine } from '../hooks/useRunwayEngine'
@@ -11,6 +11,22 @@ import { usePageTitle } from '../hooks/usePageTitle'
 const rise = {
   hidden: { opacity: 0, y: 18 },
   show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.9, delay: 0.15 + i * 0.12, ease: [0.2, 0.8, 0.2, 1] } }),
+}
+
+const HINT_KEY = 'mv-runway-hint'
+function hintSeen() {
+  try {
+    return localStorage.getItem(HINT_KEY) === 'seen'
+  } catch {
+    return false
+  }
+}
+function markHintSeen() {
+  try {
+    localStorage.setItem(HINT_KEY, 'seen')
+  } catch {
+    // storage can be blocked (private mode); the hint then shows again next visit
+  }
 }
 
 export default function Runway() {
@@ -24,7 +40,13 @@ export default function Runway() {
   const rollRef = useRef(null)
   const modelRefs = useRef([])
   const cardRefs = useRef([])
-  const engine = useRunwayEngine({ stageRef, ringRef, rollRef, modelRefs, cardRefs, startIndex })
+  // first-time visitors get a hint on how to walk the line; it leaves once they move to another look
+  const [hint, setHint] = useState(() => !hintSeen())
+  const onTravel = () => {
+    setHint(false)
+    markHintSeen()
+  }
+  const engine = useRunwayEngine({ stageRef, ringRef, rollRef, modelRefs, cardRefs, startIndex, onTravel })
 
   const [ready, setReady] = useState(false)
   useEffect(() => {
@@ -32,6 +54,7 @@ export default function Runway() {
     loadSheets().then(() => live && setReady(true))
     return () => { live = false }
   }, [])
+  const calm = useReducedMotion()
 
   // the rail runs look by look (not in shop order) so the engine can land on each look's first card
   const RAIL = LOOKS.flatMap(railPieces)
@@ -99,6 +122,43 @@ export default function Runway() {
             Shop the look
           </button>
         </motion.div>
+
+        {/* phones: bottom right, across from the look number; desktop: centred under the line */}
+        <div className="pointer-events-none absolute bottom-[22px] right-4 z-[110] desk:bottom-u44 desk:left-1/2 desk:right-auto desk:-translate-x-1/2">
+        <AnimatePresence>
+          {ready && hint && (
+            <motion.div
+              key="hint"
+              role="status"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0, transition: { duration: 1, delay: 1.2, ease: [0.2, 0.8, 0.2, 1] } }}
+              exit={{ opacity: 0, transition: { duration: 0.5 } }}
+              className="flex flex-col items-end gap-[10px] whitespace-nowrap text-right desk:items-center desk:gap-u14 desk:text-center"
+            >
+              {/* a dot gliding along a hairline between two chevrons: the line moves sideways */}
+              <span aria-hidden="true" className="flex items-center gap-[6px] desk:gap-u8">
+                <ChevronLeft strokeWidth={1.2} className="h-3 w-3 desk:h-u14 desk:w-u14" />
+                <span className="relative block h-[7px] w-[44px] desk:h-u8 desk:w-u64">
+                  <span className="absolute inset-x-0 top-1/2 h-px bg-ink/25" />
+                  <motion.span
+                    className="absolute left-1/2 top-0 -ml-[3.5px] block h-[7px] w-[7px] rounded-full bg-ink desk:-ml-u4 desk:h-u8 desk:w-u8"
+                    animate={calm ? undefined : { x: ['0%', '-260%', '260%', '0%'] }}
+                    transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', repeatDelay: 0.6 }}
+                  />
+                </span>
+                <ChevronRight strokeWidth={1.2} className="h-3 w-3 desk:h-u14 desk:w-u14" />
+              </span>
+              <span className="wide text-[9.5px] tracking-[.24em] desk:text-u14">
+                <span className="desk:hidden">Swipe to explore</span>
+                <span className="hidden desk:inline">Drag to explore</span>
+              </span>
+              <span className="hidden text-u12.5 tracking-[.02em] text-mid desk:block">
+                Scroll, use the arrow keys or select a model
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        </div>
 
         <div
           ref={ringRef}
