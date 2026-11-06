@@ -10,7 +10,7 @@ const PHONE = 820
  * Models, product cards and the rolling look number are all painted from `p`
  * straight to the DOM, so React never re-renders while the line is moving.
  */
-export function useRunwayEngine({ stageRef, ringRef, rollRef, modelRefs, cardRefs, startIndex = 0, onTravel }) {
+export function useRunwayEngine({ stageRef, ringRef, rollRef, modelRefs, cardRefs, startIndex = 0 }) {
   const api = useRef({ currentLook: () => LOOKS[startIndex].number, go: () => {} })
 
   useEffect(() => {
@@ -40,7 +40,6 @@ export function useRunwayEngine({ stageRef, ringRef, rollRef, modelRefs, cardRef
     let W = 0, H = 0, base = 0, cardS = 0, side = false, dirty = true
     let p = startIndex, target = startIndex, last = 0, raf = 0
     let mx = 0, my = 0, cx = 0, cy = 0, down = false, sx = 0, st = 0, moved = 0, wheelT = 0
-    let travelled = false
 
     api.current = {
       currentLook: () => LOOKS[wrap(Math.round(target), N)].number,
@@ -106,8 +105,6 @@ export function useRunwayEngine({ stageRef, ringRef, rollRef, modelRefs, cardRef
       else p += (target - p) * (1 - Math.exp(-dt * 0.0072))
       if (Math.abs(target - p) < 0.0004) p = target
       if (p !== was || dirty) { dirty = false; paint() }
-      // told once, the first time the visitor moves the line on to another look
-      if (!travelled && Math.abs(target - startIndex) > 0.5) { travelled = true; onTravel?.() }
       cx += (mx - cx) * 0.32
       cy += (my - cy) * 0.32
       ring.style.transform = `translate3d(${cx.toFixed(1)}px,${cy.toFixed(1)}px,0)`

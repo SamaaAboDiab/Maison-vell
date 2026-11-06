@@ -13,22 +13,6 @@ const rise = {
   show: (i = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.9, delay: 0.15 + i * 0.12, ease: [0.2, 0.8, 0.2, 1] } }),
 }
 
-const HINT_KEY = 'mv-runway-hint'
-function hintSeen() {
-  try {
-    return localStorage.getItem(HINT_KEY) === 'seen'
-  } catch {
-    return false
-  }
-}
-function markHintSeen() {
-  try {
-    localStorage.setItem(HINT_KEY, 'seen')
-  } catch {
-    // storage can be blocked (private mode); the hint then shows again next visit
-  }
-}
-
 export default function Runway() {
   usePageTitle()
   const [params] = useSearchParams()
@@ -40,13 +24,7 @@ export default function Runway() {
   const rollRef = useRef(null)
   const modelRefs = useRef([])
   const cardRefs = useRef([])
-  // first-time visitors get a hint on how to walk the line; it leaves once they move to another look
-  const [hint, setHint] = useState(() => !hintSeen())
-  const onTravel = () => {
-    setHint(false)
-    markHintSeen()
-  }
-  const engine = useRunwayEngine({ stageRef, ringRef, rollRef, modelRefs, cardRefs, startIndex, onTravel })
+  const engine = useRunwayEngine({ stageRef, ringRef, rollRef, modelRefs, cardRefs, startIndex })
 
   const [ready, setReady] = useState(false)
   useEffect(() => {
@@ -126,7 +104,7 @@ export default function Runway() {
         {/* phones: bottom right, across from the look number; desktop: centred under the line */}
         <div className="pointer-events-none absolute bottom-[22px] right-4 z-[110] desk:bottom-u44 desk:left-1/2 desk:right-auto desk:-translate-x-1/2">
         <AnimatePresence>
-          {ready && hint && (
+          {ready && (
             <motion.div
               key="hint"
               role="status"
